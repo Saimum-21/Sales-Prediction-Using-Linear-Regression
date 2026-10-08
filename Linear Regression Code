@@ -1,0 +1,272 @@
+"""
+Linear Regression Model for Sales Prediction (From Scratch)
+Complete implementation ready to run in Visual Studio Code
+
+This script demonstrates a complete ML pipeline:
+1. Load sales data from CSV
+2. Clean data (handle missing values)
+3. Split into train/test sets
+4. Train linear regression model using numpy
+5. Evaluate and visualize results
+
+Author: Md Saimum
+Date: October 8, 2026
+"""
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Set style for better-looking plots
+sns.set_style("whitegrid")
+plt.rcParams['figure.figsize'] = (12, 8)
+
+print("=" * 60)
+print("LINEAR REGRESSION MODEL FOR SALES PREDICTION")
+print("(Implementation from scratch using NumPy)")
+print("=" * 60)
+
+# Step 1: Load the data
+print("\n[1] Loading data from CSV...")
+df = pd.read_csv('sales_data.csv')
+print(f"✓ Data loaded successfully")
+print(f"  Shape: {df.shape}")
+print(f"\nFirst 5 rows:")
+print(df.head())
+
+# Step 2: Explore the data
+print("\n[2] Data Exploration")
+print("-" * 60)
+print("\nDataset Info:")
+print(df.info())
+print("\nMissing Values:")
+print(df.isnull().sum())
+print("\nBasic Statistics:")
+print(df.describe())
+
+# Step 3: Data Cleaning - Handle Missing Values
+print("\n[3] Cleaning Data (Handling Missing Values)...")
+print("-" * 60)
+print(f"Missing values before cleaning:\n{df.isnull().sum()}")
+
+# Strategy: Fill missing values with median (robust to outliers)
+for column in df.columns:
+    if df[column].isnull().any():
+        median_value = df[column].median()
+        df[column] = df[column].fillna(median_value)
+        print(f"  ✓ Filled {column} missing values with median: {median_value}")
+
+print(f"\nMissing values after cleaning:\n{df.isnull().sum()}")
+print("✓ Data cleaning complete!")
+
+# Step 4: Prepare features and target
+print("\n[4] Preparing Features and Target Variable...")
+print("-" * 60)
+
+# Features (X): All columns except 'sales'
+X = df.drop('sales', axis=1).values
+# Target (y): 'sales' column
+y = df['sales'].values
+feature_names = df.drop('sales', axis=1).columns.tolist()
+
+print(f"Features (X): {feature_names}")
+print(f"Target (y): sales")
+print(f"  X shape: {X.shape}")
+print(f"  y shape: {y.shape}")
+
+# Step 5: Split into training and testing sets
+print("\n[5] Splitting Data into Train/Test Sets...")
+print("-" * 60)
+
+# Manual train-test split (80-20)
+np.random.seed(42)
+indices = np.random.permutation(len(X))
+test_size = int(0.2 * len(X))
+train_indices = indices[test_size:]
+test_indices = indices[:test_size]
+
+X_train = X[train_indices]
+X_test = X[test_indices]
+y_train = y[train_indices]
+y_test = y[test_indices]
+
+print(f"✓ Split complete!")
+print(f"  Training set: {X_train.shape[0]} samples")
+print(f"  Test set: {X_test.shape[0]} samples")
+
+# Step 6: Train the Linear Regression Model (Using Normal Equation)
+print("\n[6] Training Linear Regression Model...")
+print("-" * 60)
+print("Using Normal Equation: θ = (X^T X)^(-1) X^T y")
+
+# Add intercept term (column of ones)
+X_train_b = np.c_[np.ones((X_train.shape[0], 1)), X_train]
+X_test_b = np.c_[np.ones((X_test.shape[0], 1)), X_test]
+
+# Normal Equation
+theta = np.linalg.inv(X_train_b.T.dot(X_train_b)).dot(X_train_b.T).dot(y_train)
+
+print("✓ Model trained successfully!")
+
+# Display model coefficients
+print("\nModel Coefficients:")
+print(f"  {'Intercept':20s}: {theta[0]:10.2f}")
+for i, feature in enumerate(feature_names):
+    print(f"  {feature:20s}: {theta[i+1]:10.2f}")
+
+# Step 7: Make Predictions
+print("\n[7] Making Predictions...")
+print("-" * 60)
+y_train_pred = X_train_b.dot(theta)
+y_test_pred = X_test_b.dot(theta)
+print("✓ Predictions complete!")
+
+# Step 8: Evaluate Model Performance
+print("\n[8] Model Evaluation")
+print("=" * 60)
+
+def r2_score(y_true, y_pred):
+    """Calculate R² (coefficient of determination)"""
+    ss_res = np.sum((y_true - y_pred) ** 2)
+    ss_tot = np.sum((y_true - np.mean(y_true)) ** 2)
+    return 1 - (ss_res / ss_tot)
+
+def mean_squared_error(y_true, y_pred):
+    """Calculate Mean Squared Error"""
+    return np.mean((y_true - y_pred) ** 2)
+
+# Training Set Metrics
+train_r2 = r2_score(y_train, y_train_pred)
+train_mse = mean_squared_error(y_train, y_train_pred)
+train_rmse = np.sqrt(train_mse)
+
+print("\nTRAINING SET PERFORMANCE:")
+print(f"  R² Score:  {train_r2:.4f}")
+print(f"  MSE:       {train_mse:.2f}")
+print(f"  RMSE:      {train_rmse:.2f}")
+
+# Test Set Metrics
+test_r2 = r2_score(y_test, y_test_pred)
+test_mse = mean_squared_error(y_test, y_test_pred)
+test_rmse = np.sqrt(test_mse)
+
+print("\nTEST SET PERFORMANCE:")
+print(f"  R² Score:  {test_r2:.4f}")
+print(f"  MSE:       {test_mse:.2f}")
+print(f"  RMSE:      {test_rmse:.2f}")
+
+# Interpretation
+print("\n" + "=" * 60)
+print("INTERPRETATION:")
+print("=" * 60)
+print(f"The R² score of {test_r2:.4f} means the model explains")
+print(f"{test_r2*100:.2f}% of the variance in sales.")
+print(f"\nOn average, predictions are off by ${test_rmse:.2f}")
+
+# Calculate percentage error
+mean_percentage_error = np.mean(np.abs((y_test - y_test_pred) / y_test)) * 100
+print(f"Mean Absolute Percentage Error: {mean_percentage_error:.2f}%")
+
+# Step 9: Visualize Results
+print("\n[9] Creating Visualizations...")
+print("-" * 60)
+
+# Create a figure with multiple subplots
+fig = plt.figure(figsize=(16, 12))
+
+# Plot 1: Predicted vs Actual (Training Set)
+plt.subplot(2, 2, 1)
+plt.scatter(y_train, y_train_pred, alpha=0.6, color='blue', edgecolors='k', s=80)
+min_val, max_val = y_train.min(), y_train.max()
+plt.plot([min_val, max_val], [min_val, max_val], 'r--', lw=2, label='Perfect Prediction')
+plt.xlabel('Actual Sales ($)', fontsize=12, fontweight='bold')
+plt.ylabel('Predicted Sales ($)', fontsize=12, fontweight='bold')
+plt.title(f'Training Set: Predicted vs Actual\nR² = {train_r2:.4f}',
+          fontsize=14, fontweight='bold')
+plt.legend(fontsize=10)
+plt.grid(True, alpha=0.3)
+
+# Plot 2: Predicted vs Actual (Test Set)
+plt.subplot(2, 2, 2)
+plt.scatter(y_test, y_test_pred, alpha=0.6, color='green', edgecolors='k', s=80)
+min_val, max_val = y_test.min(), y_test.max()
+plt.plot([min_val, max_val], [min_val, max_val], 'r--', lw=2, label='Perfect Prediction')
+plt.xlabel('Actual Sales ($)', fontsize=12, fontweight='bold')
+plt.ylabel('Predicted Sales ($)', fontsize=12, fontweight='bold')
+plt.title(f'Test Set: Predicted vs Actual\nR² = {test_r2:.4f}',
+          fontsize=14, fontweight='bold')
+plt.legend(fontsize=10)
+plt.grid(True, alpha=0.3)
+
+# Plot 3: Residuals Plot (Test Set)
+plt.subplot(2, 2, 3)
+residuals = y_test - y_test_pred
+plt.scatter(y_test_pred, residuals, alpha=0.6, color='purple', edgecolors='k', s=80)
+plt.axhline(y=0, color='r', linestyle='--', lw=2)
+plt.xlabel('Predicted Sales ($)', fontsize=12, fontweight='bold')
+plt.ylabel('Residuals ($)', fontsize=12, fontweight='bold')
+plt.title('Residual Plot (Test Set)', fontsize=14, fontweight='bold')
+plt.grid(True, alpha=0.3)
+
+# Plot 4: Feature Importance (Coefficients)
+plt.subplot(2, 2, 4)
+coefficients = theta[1:]  # Exclude intercept
+feature_importance = pd.DataFrame({
+    'Feature': feature_names,
+    'Coefficient': coefficients
+}).sort_values('Coefficient', key=abs, ascending=False)
+
+colors = ['green' if x > 0 else 'red' for x in feature_importance['Coefficient']]
+bars = plt.barh(feature_importance['Feature'], feature_importance['Coefficient'],
+                color=colors, alpha=0.7, edgecolor='black')
+plt.xlabel('Coefficient Value', fontsize=12, fontweight='bold')
+plt.ylabel('Features', fontsize=12, fontweight='bold')
+plt.title('Feature Importance (Coefficients)', fontsize=14, fontweight='bold')
+plt.grid(True, alpha=0.3, axis='x')
+plt.axvline(x=0, color='black', linestyle='-', linewidth=0.8)
+
+plt.tight_layout()
+plt.savefig('sales_prediction_results.png', dpi=300, bbox_inches='tight')
+print("✓ Visualization saved as 'sales_prediction_results.png'")
+
+# Additional plot: Actual vs Predicted comparison
+fig2, ax = plt.subplots(figsize=(14, 6))
+x_axis = np.arange(len(y_test))
+ax.plot(x_axis, y_test, 'o-', label='Actual Sales',
+        linewidth=2.5, markersize=10, color='#2E86AB', alpha=0.8)
+ax.plot(x_axis, y_test_pred, 's-', label='Predicted Sales',
+        linewidth=2.5, markersize=10, color='#A23B72', alpha=0.8)
+ax.fill_between(x_axis, y_test, y_test_pred, alpha=0.2, color='gray')
+ax.set_xlabel('Test Sample Index', fontsize=12, fontweight='bold')
+ax.set_ylabel('Sales ($)', fontsize=12, fontweight='bold')
+ax.set_title('Actual vs Predicted Sales (Test Set)', fontsize=14, fontweight='bold')
+ax.legend(fontsize=11, loc='best')
+ax.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('actual_vs_predicted_line.png', dpi=300, bbox_inches='tight')
+print("✓ Comparison plot saved as 'actual_vs_predicted_line.png'")
+
+# Create prediction comparison table
+print("\n[10] Sample Predictions (First 10 Test Samples)")
+print("=" * 60)
+comparison_df = pd.DataFrame({
+    'Actual Sales': y_test[:10],
+    'Predicted Sales': y_test_pred[:10],
+    'Difference': y_test[:10] - y_test_pred[:10],
+    'Error %': np.abs((y_test[:10] - y_test_pred[:10]) / y_test[:10] * 100)
+})
+print(comparison_df.to_string(index=False))
+
+print("\n" + "=" * 60)
+print("ANALYSIS COMPLETE!")
+print("=" * 60)
+print("\nModel Summary:")
+print(f"  • R² Score: {test_r2:.4f} ({test_r2*100:.2f}% variance explained)")
+print(f"  • RMSE: ${test_rmse:.2f}")
+print(f"  • Mean Absolute % Error: {mean_percentage_error:.2f}%")
+print("\nFiles created:")
+print("  1. sales_prediction_results.png (4-panel visualization)")
+print("  2. actual_vs_predicted_line.png (line comparison)")
+
+plt.show()
